@@ -2,20 +2,18 @@ use crate::domain::{
     errors::UrlShortenerError,
     models::{LinkStats, LongUrl, ShortLink, Slug},
 };
-use crate::infrastructure::repositories::in_memory::InMemoryRepository;
+use crate::infrastructure::repositories::persistent::PersistentRepository;
 use rand::distr::Alphanumeric;
 use rand::Rng;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 pub struct UrlShortenerService {
-    repository: Mutex<InMemoryRepository>,
+    repository: Arc<Mutex<PersistentRepository>>,
 }
 
 impl UrlShortenerService {
-    pub fn new(repository: InMemoryRepository) -> Self {
-        Self {
-            repository: Mutex::new(repository),
-        }
+    pub fn new(repository: Arc<Mutex<PersistentRepository>>) -> Self {
+        Self { repository }
     }
 
     pub fn create_short_link(
@@ -23,7 +21,7 @@ impl UrlShortenerService {
         url: LongUrl,
         custom_slug: Option<Slug>,
     ) -> Result<ShortLink, UrlShortenerError> {
-        let mut repository = self.repository.lock().unwrap();
+        let repository = self.repository.lock().unwrap();
 
         if url.0.is_empty() {
             return Err(UrlShortenerError::InvalidUrl);
@@ -49,7 +47,7 @@ impl UrlShortenerService {
     }
 
     pub fn redirect(&self, slug: &Slug) -> Result<LongUrl, UrlShortenerError> {
-        let mut repository = self.repository.lock().unwrap();
+        let repository = self.repository.lock().unwrap();
         let short_link = repository.find_by_slug(slug)?;
         repository.increment_redirects(slug)?;
 
@@ -67,7 +65,7 @@ impl UrlShortenerService {
         })
     }
 
-    fn generate_unique_slug(&self, repository: &InMemoryRepository) -> String {
+    fn generate_unique_slug(&self, repository: &PersistentRepository) -> String {
         loop {
             let slug = rand::rng()
                 .sample_iter(&Alphanumeric)

@@ -10,4 +10,7 @@ pub enum UrlShortenerError {
 
     #[error("Slug not found")]
     SlugNotFound,
+
+    #[error("Storage error")]
+    StorageError,
 }
