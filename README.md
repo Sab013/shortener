@@ -33,3 +33,14 @@ Content-Type: application/json
   "url": "https://www.google.com",
   "slug": "vasya-999"
 }
+
+---
+
+## Docker
+**Create image**
+```bash
+docker build -t url-shortener:latest .
+
+**Run app**
+```bash
+docker run -d --name url-shortener -p 8090:8080 url-shortener:latest
