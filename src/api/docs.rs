@@ -20,7 +20,7 @@ use utoipa::OpenApi;
         )
     ),
     info(
-        title = "URL Shortener API",
+        title = "QuickSlug API",
         version = "1.0.0",
         description = "API для сокращения URL-адресов",
         contact(

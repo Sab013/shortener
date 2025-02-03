@@ -4,10 +4,14 @@ use crate::domain::LinkStats;
 use crate::service::url_shortener::UrlShortenerService;
 use actix_web::{web, HttpResponse, Responder};
 
+const BRAND_URL: &str = "http://brand.url/";
+const LOCATION: &str = "Location";
+
 #[utoipa::path(
     post,
-    path = "/api/v1/links/create-short-link",
+    path = "/api/v1/links/slug",
     request_body = CreateLinkRequest,
+    summary = "Create slug from a link",
     responses(
         (status = 201, description = "Short link created successfully", body = CreateLinkResponse),
         (status = 400, description = "Bad request")
@@ -23,7 +27,7 @@ pub async fn create_short_link(
 
     match service.create_short_link(url.clone(), slug) {
         Ok(short_link) => HttpResponse::Created().json(CreateLinkResponse {
-            short_url: format!("http://short.url/{}", short_link.slug.0),
+            short_url: format!("{}{}", BRAND_URL, short_link.slug.0),
             original_url: short_link.url.0,
         }),
         Err(e) => HttpResponse::BadRequest().body(e.to_string()),
@@ -32,10 +36,11 @@ pub async fn create_short_link(
 
 #[utoipa::path(
     get,
-    path = "/api/v1/links/redirect/{slug}",
+    path = "/api/v1/links/{slug}/redirect",
     params(
         ("slug" = String, Path, description = "Short URL slug", example = "vasya-999")
     ),
+    summary = "Redirecting requests using slug to original URL",
     responses(
         (status = 307, description = "Permanent redirect to original URL. Note: This endpoint \
         performs a redirect which may not work properly in Swagger UI. Please use a direct HTTP \
@@ -50,7 +55,7 @@ pub async fn redirect(
 ) -> impl Responder {
     match service.redirect(&Slug(slug.into_inner())) {
         Ok(url) => HttpResponse::TemporaryRedirect()
-            .append_header(("Location", url.0))
+            .append_header((LOCATION, url.0))
             .finish(),
         Err(e) => HttpResponse::NotFound().body(e.to_string()),
     }
@@ -62,6 +67,7 @@ pub async fn redirect(
     params(
         ("slug" = String, Path, description = "Short URL slug", example = "vasya-999")
     ),
+    summary = "Get slug stats",
     responses(
         (status = 200, description = "Statistics retrieved successfully", body = LinkStats),
         (status = 404, description = "Short link not found")

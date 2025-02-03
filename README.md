@@ -23,24 +23,43 @@
 ## Примеры использования
 
 ### Создание короткой ссылки
-
-**Запрос:**
+**POST /api/v1/links/create-short-link**
 ```bash
-POST /api/v1/links/create-short-link
-Content-Type: application/json
+curl -X 'POST' \
+  'http://localhost:8090/api/v1/links/slug' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "slug": "vasya-999",
+  "url": " https://www.google.com"
+}'
+```
 
-{
-  "url": "https://www.google.com",
-  "slug": "vasya-999"
-}
+### Перенаправление по короткой ссылке на оригинальный url
+**GET /api/v1/links/{vasya-999}/redirect**
+```bash
+curl -X 'GET' \
+  'http://localhost:8090/api/v1/links/vasya-999/redirect/' \
+  -H 'accept: */*'
+```
+
+### Получить статистику
+**GET /api/v1/links/{vasya-999}/stats**
+```bash
+curl -X 'GET' \
+  'http://localhost:8090/api/v1/links/vasya-999/stats' \
+  -H 'accept: application/json'
+```
 
 ---
 
 ## Docker
-**Create image**
+**Создание образа**
 ```bash
 docker build -t url-shortener:latest .
+```
 
-**Run app**
+**Запуск образа**
 ```bash
 docker run -d --name url-shortener -p 8090:8080 url-shortener:latest
+```
