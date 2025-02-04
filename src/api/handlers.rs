@@ -3,6 +3,7 @@ use crate::domain::models::{LongUrl, Slug};
 use crate::domain::LinkStats;
 use crate::service::url_shortener::UrlShortenerService;
 use actix_web::{web, HttpResponse, Responder};
+use tracing::{info, warn};
 
 const BRAND_URL: &str = "http://brand.url/";
 const LOCATION: &str = "Location";
@@ -25,7 +26,7 @@ pub async fn create_short_link(
     let url = LongUrl(req.url.clone());
     let slug = req.slug.as_ref().map(|s| Slug(s.to_string()));
 
-    match service.create_short_link(url.clone(), slug) {
+    match service.create_short_link(url.clone(), slug).await {
         Ok(short_link) => HttpResponse::Created().json(CreateLinkResponse {
             short_url: format!("{}{}", BRAND_URL, short_link.slug.0),
             original_url: short_link.url.0,
@@ -53,11 +54,18 @@ pub async fn redirect(
     service: web::Data<UrlShortenerService>,
     slug: web::Path<String>,
 ) -> impl Responder {
-    match service.redirect(&Slug(slug.into_inner())) {
-        Ok(url) => HttpResponse::TemporaryRedirect()
-            .append_header((LOCATION, url.0))
-            .finish(),
-        Err(e) => HttpResponse::NotFound().body(e.to_string()),
+    info!("🔍 Запрос на редирект: {}", slug);
+    match service.redirect(&Slug(slug.into_inner())).await {
+        Ok(url) => {
+            info!("✅ Redirect to: {}", url.0);
+            HttpResponse::TemporaryRedirect()
+                .append_header((LOCATION, url.0))
+                .finish()
+        }
+        Err(e) => {
+            warn!("❌ Redirect error: {}", e);
+            HttpResponse::NotFound().body(e.to_string())
+        }
     }
 }
 
@@ -78,7 +86,7 @@ pub async fn get_stats(
     service: web::Data<UrlShortenerService>,
     slug: web::Path<String>,
 ) -> impl Responder {
-    match service.get_stats(&Slug(slug.into_inner())) {
+    match service.get_stats(&Slug(slug.into_inner())).await {
         Ok(stats) => HttpResponse::Ok().json(stats),
         Err(e) => HttpResponse::NotFound().body(e.to_string()),
     }

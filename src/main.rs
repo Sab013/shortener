@@ -1,20 +1,26 @@
 use actix_web::{web, App, HttpServer};
-use anyhow::Result;
-use std::sync::{Arc, Mutex};
-use url_shortener::{
-    api::{docs::ApiDoc, routes},
-    infrastructure::repositories::persistent::PersistentRepository,
-    service::url_shortener::UrlShortenerService,
-};
+use std::sync::Arc;
+use tracing::info;
+use url_shortener::api::docs::ApiDoc;
+use url_shortener::api::routes;
+use url_shortener::config::AppConfig;
+use url_shortener::infrastructure::repositories::url_repository::UrlRepository;
+use url_shortener::UrlShortenerService;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 #[actix_web::main]
-async fn main() -> Result<()> {
-    let repository = Arc::new(Mutex::new(
-        PersistentRepository::new("url_shortener_db")
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = AppConfig::from_env();
+
+    tracing_subscriber::fmt().with_env_filter("info").init();
+
+    info!("🚀 Initializing Redis Repository...");
+    let repository = Arc::new(
+        UrlRepository::new(&config.redis_url)
+            .await
             .map_err(|e| anyhow::Error::msg(format!("Failed to initialize repository: {}", e)))?,
-    ));
+    );
 
     let service = web::Data::new(UrlShortenerService::new(repository));
 
@@ -27,7 +33,7 @@ async fn main() -> Result<()> {
             .app_data(service.clone())
             .configure(routes::config)
     })
-    .bind("0.0.0.0:8080")?
+    .bind(("0.0.0.0", config.server_port))?
     .run()
     .await?;
 
