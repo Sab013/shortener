@@ -54,12 +54,6 @@ curl -X 'GET' \
 ---
 
 ## Docker
-**Создание образа**
 ```bash
-docker build -t url-shortener:latest .
-```
-
-**Запуск образа**
-```bash
-docker run -d --name url-shortener -p 8090:8080 url-shortener:latest
+docker compose up --build -d
 ```

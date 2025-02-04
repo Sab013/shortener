@@ -11,5 +11,8 @@ rand = { version = "0.9.0", features = ["std"] }
 utoipa = { version = "5.3.1", features = ["actix_extras"] }
 utoipa-swagger-ui = { version = "9.0.0", features = ["actix-web"] }
 bincode = "2.0.0-rc.3"
-sled = "1.0.0-alpha.124"
 anyhow = "1.0.95"
+redis = { version = "0.28.2", features = ["tokio-comp", "aio"] }
+tokio = { version = "1.43.0", features = ["full"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
