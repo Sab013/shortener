@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use super::dto::{CreateLinkRequest, CreateLinkResponse};
 use crate::domain::models::{LongUrl, Slug};
 use crate::domain::LinkStats;
