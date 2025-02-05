@@ -18,12 +18,12 @@ impl ShortLinkRepository {
 
     pub async fn new(redis_url: &str) -> Result<Self, DomainErrors> {
         info!("Initializing URL repository with Redis URL: {}", redis_url);
-        let client = Client::open(redis_url).map_err(|_| DomainErrors::StorageError)?;
+        let client = Client::open(redis_url).map_storage_err()?;
 
         let connection = client
             .get_multiplexed_async_connection()
             .await
-            .map_err(|_| DomainErrors::StorageError)?;
+            .map_storage_err()?;
 
         info!("Successfully connected to Redis");
         Ok(Self {
