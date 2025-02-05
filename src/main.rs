@@ -4,10 +4,10 @@ use tracing::info;
 use url_shortener::api::docs::ApiDoc;
 use url_shortener::api::routes;
 use url_shortener::config::AppConfig;
-use url_shortener::infrastructure::repositories::url_repository::UrlRepository;
 use url_shortener::UrlShortenerService;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+use url_shortener::infrastructure::storage::redis::shortened_urls::ShortLinkRepository;
 
 #[actix_web::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -17,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("🚀 Initializing Redis Repository...");
     let repository = Arc::new(
-        UrlRepository::new(&config.redis_url)
+        ShortLinkRepository::new(&config.redis_url)
             .await
             .map_err(|e| anyhow::Error::msg(format!("Failed to initialize repository: {}", e)))?,
     );
