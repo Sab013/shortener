@@ -7,15 +7,6 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    pub fn new() -> Self {
-        Self {
-            server_port: 8080,
-            base_url: "http://localhost:8080".to_string(),
-            max_slug_length: 8,
-            redis_url: "redis://redis:6379".to_string(),
-        }
-    }
-
     pub fn from_env() -> Self {
         Self {
             server_port: std::env::var("PORT")

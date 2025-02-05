@@ -1,19 +1,19 @@
 use crate::domain::{
-    errors::UrlShortenerError,
+    errors::DomainErrors,
     models::{LinkStats, LongUrl, ShortLink, Slug},
 };
-use crate::infrastructure::repositories::url_repository::UrlRepository;
 use rand::distr::Alphanumeric;
 use rand::Rng;
 use std::sync::Arc;
 use tracing::info;
+use crate::infrastructure::storage::redis::shortened_urls::ShortLinkRepository;
 
 pub struct UrlShortenerService {
-    repository: Arc<UrlRepository>,
+    repository: Arc<ShortLinkRepository>,
 }
 
 impl UrlShortenerService {
-    pub fn new(repository: Arc<UrlRepository>) -> Self {
+    pub fn new(repository: Arc<ShortLinkRepository>) -> Self {
         Self { repository }
     }
 
@@ -21,15 +21,15 @@ impl UrlShortenerService {
         &self,
         url: LongUrl,
         custom_slug: Option<Slug>,
-    ) -> Result<ShortLink, UrlShortenerError> {
+    ) -> Result<ShortLink, DomainErrors> {
         if url.0.is_empty() {
-            return Err(UrlShortenerError::InvalidUrl);
+            return Err(DomainErrors::InvalidUrl);
         }
 
         let slug = match custom_slug {
             Some(slug) => {
                 if self.repository.exists(&slug).await? {
-                    return Err(UrlShortenerError::SlugConflict);
+                    return Err(DomainErrors::SlugConflict);
                 }
                 slug
             }
@@ -46,7 +46,7 @@ impl UrlShortenerService {
         Ok(short_link)
     }
 
-    pub async fn redirect(&self, slug: &Slug) -> Result<LongUrl, UrlShortenerError> {
+    pub async fn redirect(&self, slug: &Slug) -> Result<LongUrl, DomainErrors> {
         info!("Redirect requested for slug: {}", slug.0);
         let short_link = self.repository.find_by_slug(slug).await?;
         info!("Found short link: {:?}", short_link);
@@ -55,7 +55,7 @@ impl UrlShortenerService {
         Ok(short_link.url)
     }
 
-    pub async fn get_stats(&self, slug: &Slug) -> Result<LinkStats, UrlShortenerError> {
+    pub async fn get_stats(&self, slug: &Slug) -> Result<LinkStats, DomainErrors> {
         let link = self.repository.find_by_slug(slug).await?;
         let redirect_count = self.repository.get_redirect_count(slug).await?;
         Ok(LinkStats {
