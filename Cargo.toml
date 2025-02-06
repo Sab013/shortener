@@ -1,18 +1,35 @@
 [package]
-name = "url_shortener"
+name = "shortener"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-actix-web = "4.9.0"
+# Серверный фреймворк и middleware
+axum = "0.8.1"
+tower = "0.5.2"
+tower-http = { version = "0.6.2", features = ["trace", "cors"] }
+
+# Сериализация/десериализация
 serde = { version = "1.0.217", features = ["derive"] }
-thiserror = "2.0.11"
-rand = { version = "0.9.0", features = ["std"] }
-utoipa = { version = "5.3.1", features = ["actix_extras"] }
-utoipa-swagger-ui = { version = "9.0.0", features = ["actix-web"] }
 bincode = "2.0.0-rc.3"
+
+# Обработка ошибок
+thiserror = "2.0.11"
 anyhow = "1.0.95"
+
+# Генерация случайных значений
+rand = { version = "0.9.0", features = ["std"] }
+
+# Redis
 redis = { version = "0.28.2", features = ["tokio-comp", "aio"] }
+
+# Асинхронный рантайм
 tokio = { version = "1.43.0", features = ["full"] }
+
+# Логирование
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+
+# API документация
+utoipa = { version = "5.3.1", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }

@@ -12,7 +12,7 @@ services:
 
   app:
     build: .
-    container_name: rust_app
+    container_name: shortener
     restart: always
     depends_on:
       - redis

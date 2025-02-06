@@ -20,7 +20,7 @@ use utoipa::OpenApi;
         )
     ),
     info(
-        title = "QuickSlug API",
+        title = "QuickLink API",
         version = "1.0.0",
         description = "API для сокращения URL-адресов",
         contact(
@@ -30,6 +30,15 @@ use utoipa::OpenApi;
     ),
     tags(
         (name = "shortener", description = "URL Shortener endpoints")
-    )
+    ),
+    modifiers(&SecurityAddon)
 )]
 pub struct ApiDoc;
+
+struct SecurityAddon;
+
+impl utoipa::Modify for SecurityAddon {
+    fn modify(&self, _openapi: &mut utoipa::openapi::OpenApi) {
+        // Здесь можно добавить дополнительные модификации OpenAPI схемы
+    }
+}
