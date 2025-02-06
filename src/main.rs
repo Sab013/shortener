@@ -1,4 +1,4 @@
-#[actix_web::main]
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    url_shortener::run_server().await
+    shortener::server::run_server().await
 }

@@ -1,14 +1,17 @@
-use crate::UrlShortenerService;
-use actix_web::{web, App, HttpServer};
+use crate::ShortenerService;
+use axum::Router;
+use std::net::SocketAddr;
 use std::sync::Arc;
+use tower::ServiceBuilder;
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::TraceLayer,
+};
 use tracing::info;
-use utoipa::OpenApi;
-use utoipa_swagger_ui::SwaggerUi;
 
-use crate::api::docs::ApiDoc;
 use crate::api::routes;
 use crate::config::AppConfig;
-use crate::infrastructure::storage::redis::shortened_urls::ShortLinkRepository;
+use crate::infrastructure::storage::redis::shortener_repository::ShortenerRepository;
 
 pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     let config = AppConfig::from_env();
@@ -17,25 +20,37 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("🚀 Initializing Redis Repository...");
     let repository = Arc::new(
-        ShortLinkRepository::new(&config.redis_url)
+        ShortenerRepository::new(&config.redis_url)
             .await
             .map_err(|e| anyhow::Error::msg(format!("Failed to initialize repository: {}", e)))?,
     );
 
-    let service = web::Data::new(UrlShortenerService::new(repository));
+    let service = Arc::new(ShortenerService::new(repository));
 
-    HttpServer::new(move || {
-        App::new()
-            .service(
-                SwaggerUi::new("/swagger-ui/{_:.*}")
-                    .url("/api-docs/openapi.json", ApiDoc::openapi()),
-            )
-            .app_data(service.clone())
-            .configure(routes::config)
-    })
-    .bind(("0.0.0.0", config.server_port))?
-    .run()
-    .await?;
+    // CORS middleware
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+
+    // Middleware stack
+    let middleware_stack = ServiceBuilder::new()
+        .layer(TraceLayer::new_for_http())
+        .layer(cors);
+
+    // Router
+    let app = Router::new()
+        .merge(routes::create_router(service))
+        .layer(middleware_stack);
+
+    // Server binding
+    let addr = format!("0.0.0.0:{}", config.server_port).parse::<SocketAddr>()?;
+
+    info!("🚀 Server running on http://{}", addr);
+    info!("📚 Swagger UI available at http://{}/swagger-ui/", addr);
+
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+    axum::serve(listener, app).await?;
 
     Ok(())
 }
