@@ -1,3 +1,3 @@
-pub mod url_shortener;
+pub mod shortener_service;
 
-pub use url_shortener::UrlShortenerService;
+pub use shortener_service::ShortenerService;

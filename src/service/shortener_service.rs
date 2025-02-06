@@ -2,18 +2,18 @@ use crate::domain::{
     errors::DomainErrors,
     models::{LinkStats, LongUrl, ShortLink, Slug},
 };
+use crate::infrastructure::storage::redis::shortener_repository::ShortenerRepository;
 use rand::distr::Alphanumeric;
 use rand::Rng;
 use std::sync::Arc;
 use tracing::info;
-use crate::infrastructure::storage::redis::shortened_urls::ShortLinkRepository;
 
-pub struct UrlShortenerService {
-    repository: Arc<ShortLinkRepository>,
+pub struct ShortenerService {
+    repository: Arc<ShortenerRepository>,
 }
 
-impl UrlShortenerService {
-    pub fn new(repository: Arc<ShortLinkRepository>) -> Self {
+impl ShortenerService {
+    pub fn new(repository: Arc<ShortenerRepository>) -> Self {
         Self { repository }
     }
 

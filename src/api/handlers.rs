@@ -1,19 +1,23 @@
-use std::collections::HashMap;
 use super::dto::{CreateLinkRequest, CreateLinkResponse};
 use crate::domain::models::{LongUrl, Slug};
 use crate::domain::LinkStats;
-use crate::service::url_shortener::UrlShortenerService;
-use actix_web::{web, HttpResponse, Responder};
+use crate::service::shortener_service::ShortenerService;
+use axum::{
+    extract::{Path, State},
+    http::{HeaderMap, StatusCode},
+    response::IntoResponse,
+    Json,
+};
+use std::sync::Arc;
 use tracing::{info, warn};
 
 const BRAND_URL: &str = "http://brand.url/";
-const LOCATION: &str = "Location";
+const LOCATION: &str = "location";
 
 #[utoipa::path(
     post,
     path = "/api/v1/links/slug",
     request_body = CreateLinkRequest,
-    summary = "Create slug from a link",
     responses(
         (status = 201, description = "Short link created successfully", body = CreateLinkResponse),
         (status = 400, description = "Bad request")
@@ -21,18 +25,22 @@ const LOCATION: &str = "Location";
     tags = ["shortener"]
 )]
 pub async fn create_short_link(
-    service: web::Data<UrlShortenerService>,
-    req: web::Json<CreateLinkRequest>,
-) -> impl Responder {
-    let url = LongUrl(req.url.clone());
-    let slug = req.slug.as_ref().map(|s| Slug(s.to_string()));
+    State(service): State<Arc<ShortenerService>>,
+    Json(req): Json<CreateLinkRequest>,
+) -> impl IntoResponse {
+    let url = LongUrl(req.url);
+    let slug = req.slug.map(|s| Slug(s));
 
     match service.create_short_link(url.clone(), slug).await {
-        Ok(short_link) => HttpResponse::Created().json(CreateLinkResponse {
-            short_url: format!("{}{}", BRAND_URL, short_link.slug.0),
-            original_url: short_link.url.0,
-        }),
-        Err(e) => HttpResponse::BadRequest().body(e.to_string()),
+        Ok(short_link) => (
+            StatusCode::CREATED,
+            Json(CreateLinkResponse {
+                short_url: format!("{}{}", BRAND_URL, short_link.slug.0),
+                original_url: short_link.url.0,
+            }),
+        )
+            .into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
     }
 }
 
@@ -42,30 +50,27 @@ pub async fn create_short_link(
     params(
         ("slug" = String, Path, description = "Short URL slug", example = "vasya-999")
     ),
-    summary = "Redirecting requests using slug to original URL",
     responses(
-        (status = 307, description = "Permanent redirect to original URL. Note: This endpoint \
-        performs a redirect which may not work properly in Swagger UI. Please use a direct HTTP \
-        client like curl or Postman to test redirects."),
+        (status = 307, description = "Permanent redirect to original URL"),
         (status = 404, description = "Short link not found")
     ),
     tags = ["shortener"]
 )]
 pub async fn redirect(
-    service: web::Data<UrlShortenerService>,
-    slug: web::Path<String>,
-) -> impl Responder {
+    State(service): State<Arc<ShortenerService>>,
+    Path(slug): Path<String>,
+) -> impl IntoResponse {
     info!("🔍 Запрос на редирект: {}", slug);
-    match service.redirect(&Slug(slug.into_inner())).await {
+    match service.redirect(&Slug(slug)).await {
         Ok(url) => {
             info!("✅ Redirect to: {}", url.0);
-            HttpResponse::TemporaryRedirect()
-                .append_header((LOCATION, url.0))
-                .finish()
+            let mut headers = HeaderMap::new();
+            headers.insert(LOCATION, url.0.parse().unwrap());
+            (StatusCode::TEMPORARY_REDIRECT, headers).into_response()
         }
         Err(e) => {
             warn!("❌ Redirect error: {}", e);
-            HttpResponse::NotFound().body(e.to_string())
+            (StatusCode::NOT_FOUND, e.to_string()).into_response()
         }
     }
 }
@@ -76,7 +81,6 @@ pub async fn redirect(
     params(
         ("slug" = String, Path, description = "Short URL slug", example = "vasya-999")
     ),
-    summary = "Get slug stats",
     responses(
         (status = 200, description = "Statistics retrieved successfully", body = LinkStats),
         (status = 404, description = "Short link not found")
@@ -84,11 +88,11 @@ pub async fn redirect(
     tags = ["shortener"]
 )]
 pub async fn get_stats(
-    service: web::Data<UrlShortenerService>,
-    slug: web::Path<String>,
-) -> impl Responder {
-    match service.get_stats(&Slug(slug.into_inner())).await {
-        Ok(stats) => HttpResponse::Ok().json(stats),
-        Err(e) => HttpResponse::NotFound().body(e.to_string()),
+    State(service): State<Arc<ShortenerService>>,
+    Path(slug): Path<String>,
+) -> impl IntoResponse {
+    match service.get_stats(&Slug(slug)).await {
+        Ok(stats) => (StatusCode::OK, Json(stats)).into_response(),
+        Err(e) => (StatusCode::NOT_FOUND, e.to_string()).into_response(),
     }
 }

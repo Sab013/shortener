@@ -9,15 +9,18 @@ use std::sync::Arc;
 use tracing::info;
 
 #[derive(Clone)]
-pub struct ShortLinkRepository {
+pub struct ShortenerRepository {
     connection: Arc<MultiplexedConnection>,
 }
 
-impl ShortLinkRepository {
+impl ShortenerRepository {
     const REDIRECTS_KEY_PREFIX: &'static str = "redirects:";
 
     pub async fn new(redis_url: &str) -> Result<Self, DomainErrors> {
-        info!("Initializing URL repository with Redis URL: {}", redis_url);
+        info!(
+            "Initializing Shortener repository with Redis URL: {}",
+            redis_url
+        );
         let client = Client::open(redis_url).map_storage_err()?;
 
         let connection = client
