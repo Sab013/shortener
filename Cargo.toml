@@ -33,3 +33,4 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 # API документация
 utoipa = { version = "5.3.1", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }
+utoipa-redoc = { version = "6.0.0", features = ["axum"] }
