@@ -22,14 +22,28 @@ use utoipa::OpenApi;
     info(
         title = "QuickLink API",
         version = "1.0.0",
-        description = "API для сокращения URL-адресов",
+        description = "API для сокращения URL-адресов\n\
+        ### Возможности\n\
+        - Создание коротких ссылок\n\
+        - Перенаправление по коротким ссылкам\n\
+        - Просмотр статистики использования\n\
+        \n\
+        ### Использование\n\
+        1. Создайте короткую ссылку через POST /slug\n\
+        2. Используйте полученный slug для редиректа\n\
+        3. Отслеживайте статистику через GET /{slug}/stats",
+        license(
+            name = "MIT",
+            url = "https://opensource.org/licenses/MIT"
+        ),
         contact(
             name = "Vitaly Vasiltsov",
             email = "dev9900195@gmail.com",
+            url = "https://github.com/Sab013/shortener",
         )
     ),
     tags(
-        (name = "shortener", description = "URL Shortener endpoints")
+        (name = "shortener", description = "URL Shortener endpoints. Позволяет создавать и управлять короткими ссылками.")
     ),
     modifiers(&SecurityAddon)
 )]
